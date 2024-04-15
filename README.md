@@ -1,4 +1,4 @@
-# This repo contains the DVision team's solution to NTIRE HR Depth-Mono Challenge
+# This repo contains the DVision team's solution to the NTIRE HR Depth-Mono Challenge
 
 >Note: Team DVision (NTIRE 2024)
 
@@ -31,12 +31,14 @@ python dataset_paths.py
 
 The ``test.txt`` file corresponding to the test dataset will be created in ``dataset_paths`` folder. Pass this ``test.txt`` file path to ``img-path`` argument of ``inference`` command. 
 
-The test dataset must be present in dataset folder. 
+The test dataset must be present in the dataset folder. 
 
 A sample test.txt file is already present in dataset_paths
 
 
 ## Inference
+
+The pretrained checkpoints can be downloaded from **[Google Drive](https://drive.google.com/file/d/161k7IJgATeDRADCF76ztvWA3KtrIX0Lz/view?usp=sharing)**. 
 
 ```bash
 python run.py [--grayscale]
@@ -65,11 +67,11 @@ Arguments:
 - ``--save_dir``: dir path to save the patched dataset
 
 Output:
-Dataset will be created in dataset/train folder. 
+The dataset will be created in the dataset/train folder. 
 
-A train_extended.txt file will be created in dataset_paths having paths of patched dataset. 
+A train_extended.txt file will be created in dataset_paths having paths of the patched dataset. 
 
-Pass this text file in ``train_txt`` argument of training command
+Pass this text file in the ``train_txt`` argument of the training command
 
 
 ## Training
@@ -79,7 +81,7 @@ python train.py --train_txt dataset_paths/train_extended.txt
 ```
 Arguments:
 - ``--train_txt``: path to train txt
-- ``--checkpoints-dir``: dir path to save model's checkpoints
+- ``--checkpoints-dir``: dir path to save the model's checkpoints
 - ``--should-log``: wandb log 1) 1: enable 2) 0: disable
 - ``--batch-size``: batch size
 - ``--w``: width of target depth map
@@ -93,7 +95,7 @@ python train.py --train_txt dataset_paths/train_extended.txt --should-log 0 --ba
 ```
 
 ### Citations
-If DVision's version helps your research or work, please consider citing NTIRE 2024 SSR Challenge Paper.
+If DVision's version helps your research or work, please consider citing the NTIRE 2024 SSR Challenge Paper.
 
 <details>
 
