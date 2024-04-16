@@ -1,7 +1,5 @@
 # This repo contains the DVision team's solution to the NTIRE HR Depth-Mono Challenge
 
->Note: Team DVision (NTIRE 2024)
-
 The official DepthAnything implementation **[GitHub](https://github.com/LiheYoung/Depth-Anything.git)**. 
 
 #### Sourav Saini, Aashray Gupta, Sahaj K. Mistry, Aryan
@@ -95,43 +93,17 @@ python train.py --train_txt dataset_paths/train_extended.txt --should-log 0 --ba
 ```
 
 ### Citations
-If DVision's version helps your research or work, please consider citing the NTIRE 2024 SSR Challenge Paper.
+If DVision's version helps your research or work, please consider citing the NTIRE 2024 Challenge Paper.
 
-<details>
-
-<summary>NTIRE-24</summary>
+1. NTIRE 2024 Challenge on HR Depth from Images of Specular and Transparent Surfaces
 
 ```
 To be updated!
 ```
 
-</details>
 
-<details>
 
-<summary>NTIRE-23</summary>
-
-```
-@INPROCEEDINGS{10208658,
-  author={Ramirez, Pierluigi Zama and Tosi, Fabio and Di Stefano, Luigi and Timofte, Radu and Costanzino, Alex and Poggi, Matteo and Salti, Samuele and Mattoccia, Stefano and Shi, Jun and Zhang, Dafeng and A, Yong and Jin, Yixiang and Li, Dingzhe and Li, Chao and Liu, Zhiwen and Zhang, Qi and Wang, Yixing and Yin, Shi},
-  booktitle={2023 IEEE/CVF Conference on Computer Vision and Pattern Recognition Workshops (CVPRW)}, 
-  title={NTIRE 2023 Challenge on HR Depth from Images of Specular and Transparent Surfaces}, 
-  year={2023},
-  volume={},
-  number={},
-  pages={1384-1395},
-  abstract={This paper reports about the NTIRE 2023 challenge on HR Depth From images of Specular and Transparent surfaces, held in conjunction with the New Trends in Image Restoration and Enhancement workshop (NTIRE) workshop at CVPR 2023. This challenge is held to boost the research on depth estimation, mainly to deal with two of the open issues in the field: high-resolution images and non-Lambertian surfaces characterizing specular and transparent materials. The challenge is divided into two tracks: a stereo track focusing on disparity estimation from rectified pairs and a mono track dealing with single-image depth estimation. The challenge attracted about 100 registered participants for the two tracks. In the final testing stage, 5 participating teams submitted their models and fact sheets, 2 and 3 for the Stereo and Mono tracks, respectively.},
-  keywords={Computer vision;Conferences;Computational modeling;Estimation;Focusing;Market research;Pattern recognition},
-  doi={10.1109/CVPRW59228.2023.00143},
-  ISSN={2160-7516},
-  month={June},}
-```
-
-</details>
-
-<details>
-
-<summary>Also please consider citing Depth-Anything.</summary>
+2. Also please consider citing Depth-Anything Official Paper.
 
 ```
 @inproceedings{depthanything,
@@ -141,8 +113,6 @@ To be updated!
       year={2024}
 }
 ```
-
-</details>
 
 
 ### Contact
