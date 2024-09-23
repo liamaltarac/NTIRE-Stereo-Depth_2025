@@ -98,7 +98,14 @@ If DVision's version helps your research or work, please consider citing the NTI
 1. NTIRE 2024 Challenge on HR Depth from Images of Specular and Transparent Surfaces
 
 ```
-To be updated!
+@InProceedings{Ramirez_2024_CVPR,
+    author    = {Ramirez, Pierluigi Zama and Tosi, Fabio and Di Stefano, Luigi and Timofte, Radu and Costanzino, Alex and Poggi, Matteo and Salti, Samuele and Mattoccia, Stefano and Zhang, Yangyang and Wu, Cailin and He, Zhuangda and Yin, Shuangshuang and Dong, Jiaxu and Liu, Yangchenxu and Jiang, Hao and Shi, Jun and A, Yong and Jin, Yixiang and Li, Dingzhe and Ke, Bingxin and Obukhov, Anton and Wang, Tinafu and Metzger, Nando and Huang, Shengyu and Schindler, Konrad and Huang, Yachuan and Li, Jiaqi and Zhang, Junrui and Wang, Yiran and Huang, Zihao and Liu, Tianqi and Cao, Zhiguo and Li, Pengzhi and Wang, Jui-Lin and Zhu, Wenjie and Geng, Hui and Zhang, Yuxin and Lan, Long and Xu, Kele and Sun, Tao and Xu, Qisheng and Saini, Sourav and Gupta, Aashray and Mistry, Sahaj K. and Shukla, Aryan and Jakhetiya, Vinit and Jaiswal, Sunil and Sun, Yuejin and Zheng, Zhuofan and Ning, Yi and Cheng, Jen-Hao and Liu, Hou-I and Huang, Hsiang-Wei and Yang, Cheng-Yen and Jiang, Zhongyu and Peng, Yi-Hao and Huang, Aishi and Hwang, Jenq-Neng},
+    title     = {NTIRE 2024 Challenge on HR Depth from Images of Specular and Transparent Surfaces},
+    booktitle = {Proceedings of the IEEE/CVF Conference on Computer Vision and Pattern Recognition (CVPR) Workshops},
+    month     = {June},
+    year      = {2024},
+    pages     = {6499-6512}
+}
 ```
 
 
