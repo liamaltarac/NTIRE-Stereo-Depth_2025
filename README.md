@@ -9,7 +9,7 @@ The official DepthAnything implementation **[GitHub](https://github.com/LiheYoun
 ## Installation
 
 ```bash
-cd Depth-Anything
+cd NTIRE-HR_Depth-DVision
 python3 -m venv venv
 source venv/bin/activate
 pip install -r requirements.txt
