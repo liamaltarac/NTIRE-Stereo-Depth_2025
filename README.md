@@ -2,7 +2,7 @@
 
 The official DepthAnything implementation **[GitHub](https://github.com/LiheYoung/Depth-Anything.git)**. 
 
-#### Sourav Saini, Aashray Gupta, Sahaj K. Mistry, Aryan  **[Paper Link](https://openaccess.thecvf.com/content/CVPR2024W/NTIRE/papers/Ramirez_NTIRE_2024_Challenge_on_HR_Depth_from_Images_of_Specular_CVPRW_2024_paper.pdf)**
+#### Sourav Saini, Aashray Gupta, Sahaj K. Mistry, Aryan Shukla  **[Paper Link](https://openaccess.thecvf.com/content/CVPR2024W/NTIRE/papers/Ramirez_NTIRE_2024_Challenge_on_HR_Depth_from_Images_of_Specular_CVPRW_2024_paper.pdf)**
 
 >The challenge aimed to estimate high-resolution depth maps from stereo or monocular images with ToM (transparent or mirror) surfaces.
 
