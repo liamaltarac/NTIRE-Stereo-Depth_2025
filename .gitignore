@@ -23,6 +23,7 @@ ENV
 *.tar
 *.out
 *.pth
+*.pt
 *.png
 *.npy
 *.jpg
