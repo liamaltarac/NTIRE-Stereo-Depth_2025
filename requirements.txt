@@ -10,3 +10,8 @@ transformers
 DISTS_pytorch
 pytorch_msssim
 tqdm
+scipy
+scikit-image
+tensorboard
+matplotlib 
+timm==0.5.4
