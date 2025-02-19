@@ -27,3 +27,4 @@ ENV
 *.png
 *.npy
 *.jpg
+*.xml
