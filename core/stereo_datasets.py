@@ -124,7 +124,7 @@ class StereoDataset(data.Dataset):
 class Booster(StereoDataset):
 
     def __init__(self, aug_params=None, root="./Train", image_set='training'):
-        super(Booster, self).__init__(aug_params, sparse=True, reader=None)
+        super(Booster, self).__init__(aug_params=aug_params, sparse=True, reader=None)
         assert os.path.exists(root)
 
         categories = glob(os.path.abspath(root + "/*"))
@@ -144,7 +144,7 @@ class Booster(StereoDataset):
 
 class SceneFlowDatasets(StereoDataset):
     def __init__(self, aug_params=None, root='/data/StereoDatasets/sceneflow/', dstype='frames_finalpass', things_test=False):
-        super(SceneFlowDatasets, self).__init__(aug_params)
+        super(SceneFlowDatasets, self).__init__(aug_params, sparse=False)
         self.root = root
         self.dstype = dstype
 
@@ -402,6 +402,7 @@ def fetch_dataloader(args):
         new_dataset = SceneFlowDatasets(aug_params, dstype='frames_finalpass')
         logging.info(f"Adding {len(new_dataset)} samples from SceneFlow")
     elif args.train_datasets == 'booster':
+
         new_dataset = Booster(aug_params)
         logging.info(f"Adding {len(new_dataset)} samples from Booster")
     elif args.train_datasets == 'vkitti2':
