@@ -86,6 +86,7 @@ def groupwise_correlation(fea1, fea2, num_groups):
 
 def build_gwc_volume(refimg_fea, targetimg_fea, maxdisp, num_groups):
     B, C, H, W = refimg_fea.shape
+    #print("BATCH :", B)
     volume = refimg_fea.new_zeros([B, num_groups, maxdisp, H, W])
     for i in range(maxdisp):
         if i > 0:

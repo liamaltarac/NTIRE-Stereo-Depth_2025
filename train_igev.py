@@ -82,8 +82,8 @@ def fetch_optimizer(args, model):
     """ Create the optimizer and learning rate scheduler """
     optimizer = optim.AdamW(model.parameters(), lr=args.lr, weight_decay=args.wdecay, eps=1e-8)
 
-    scheduler = None #optim.lr_scheduler.OneCycleLR(optimizer, args.lr, args.num_steps+100,
-                     #pct_start=0.01, cycle_momentum=False, anneal_strategy='linear')
+    scheduler = optim.lr_scheduler.OneCycleLR(optimizer, args.lr, args.num_steps+100,
+            pct_start=0.01, cycle_momentum=False, anneal_strategy='linear')
     return optimizer, scheduler
 
 
@@ -228,7 +228,7 @@ if __name__ == '__main__':
     # Training parameters
     parser.add_argument('--batch_size', type=int, default=1, help="batch size used during training.")
     parser.add_argument('--train_datasets', default='booster', choices=['sceneflow', 'kitti', 'middlebury_train', 'middlebury_finetune', 'eth3d_train', 'eth3d_finetune', 'booster'], help="training datasets.")
-    parser.add_argument('--lr', type=float, default=1e-5, help="max learning rate.")
+    parser.add_argument('--lr', type=float, default=0.0002, help="max learning rate.")
     parser.add_argument('--num_steps', type=int, default=200000, help="length of training schedule.")
     parser.add_argument('--image_size', type=int, nargs='+', default=[256, 768], help="size of the random image crops used during training.")
     parser.add_argument('--train_iters', type=int, default=22, help="number of updates to the disparity field in each forward pass.")

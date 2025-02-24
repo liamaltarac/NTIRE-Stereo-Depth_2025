@@ -2,7 +2,7 @@ import sys
 sys.path.append('core')
 
 import os
-# os.environ['CUDA_VISIBLE_DEVICES'] = '0,1'
+os.environ['CUDA_VISIBLE_DEVICES'] = '0,1'
 
 import argparse
 import time
@@ -212,10 +212,58 @@ def validate_middlebury(model, iters=32, split='MiddEval3', resolution='F', mixe
     return {f'middlebury{split}-epe': epe, f'middlebury{split}-d1': d1}
 
 
+
+
+@torch.no_grad()
+def validate_booster(model, iters=32, resolution='F', mixed_prec=False):
+    """ Peform validation on Booster (based on the Middlebury) """
+
+    model.eval()
+    aug_params = {}
+    val_dataset = datasets.Booster(aug_params)
+    out_list, epe_list = [], []
+
+    for val_id in range(len(val_dataset)):
+        (imageL_file, imageR_file, disp_gt), image1, image2, flow_gt, valid_gt = val_dataset[val_id]
+        image1 = image1[None].cuda()
+        image2 = image2[None].cuda()
+        padder = InputPadder(image1.shape, divis_by=32)
+        image1, image2 = padder.pad(image1, image2)
+
+        with autocast(enabled=mixed_prec):
+            flow_pr = model(image1, image2, iters=iters, test_mode=True)
+        flow_pr = padder.unpad(flow_pr).cpu().squeeze(0)
+        assert flow_pr.shape == flow_gt.shape, (flow_pr.shape, flow_gt.shape)
+        epe = torch.sum((flow_pr - flow_gt)**2, dim=0).sqrt()
+        epe_flattened = epe.flatten()
+
+        occ_mask = Image.open(disp_gt.replace('disp_00.npy', 'mask_cat.png')).convert('L')
+        occ_mask = np.ascontiguousarray(occ_mask, dtype=np.float32).flatten()
+        val = (valid_gt.reshape(-1) >= 0.5) & (occ_mask==255)
+        out = (epe_flattened > 2.0)
+        image_out = out[val].float().mean().item()
+        image_epe = epe_flattened[val].mean().item()
+        logging.info(f"Booster Iter {val_id+1} out of {len(val_dataset)}. EPE {round(image_epe,4)} D1 {round(image_out,4)}")
+        epe_list.append(image_epe)
+        out_list.append(image_out)
+
+    epe_list = np.array(epe_list)
+    out_list = np.array(out_list)
+
+    epe = np.mean(epe_list)
+    d1 = 100 * np.mean(out_list)
+
+    #f = open('test_middlebury.txt', 'a')
+    #f.write("Validation Middlebury: %f, %f\n" % (epe, d1))
+
+    print(f"Validation Booster: EPE {epe}, D1 {d1}")
+    return {f'Booster-epe': epe, f'middlebury-d1': d1}
+
+
 if __name__ == '__main__':
     parser = argparse.ArgumentParser()
     parser.add_argument('--restore_ckpt', help="restore checkpoint", default='./pretrained_models/igev_plusplus/sceneflow.pth')
-    parser.add_argument('--dataset', help="dataset for evaluation", default='sceneflow', choices=["eth3d", "kitti", "sceneflow"] + [f"middlebury_{s}" for s in 'FHQ'])
+    parser.add_argument('--dataset', help="dataset for evaluation", default='booster', choices=["eth3d", "kitti", "sceneflow", "booster"] + [f"middlebury_{s}" for s in 'FHQ'])
     parser.add_argument('--mixed_precision', default=False, action='store_true', help='use mixed precision')
     parser.add_argument('--precision_dtype', default='float32', choices=['float16', 'bfloat16', 'float32'], help='Choose precision type: float16 or bfloat16 or float32')
     parser.add_argument('--valid_iters', type=int, default=32, help='number of flow-field updates during forward pass')
@@ -263,3 +311,6 @@ if __name__ == '__main__':
 
     elif args.dataset == 'sceneflow':
         validate_sceneflow(model, iters=args.valid_iters, mixed_prec=args.mixed_precision)
+
+    elif args.dataset == 'booster':
+        validate_booster(model, iters=args.valid_iters, mixed_prec=args.mixed_precision)

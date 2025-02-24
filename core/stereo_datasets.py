@@ -135,6 +135,8 @@ class Booster(StereoDataset):
             cam0 = glob(os.path.abspath(i + "/camera_00/*.png"))
             cam2 = glob(os.path.abspath(i + "/camera_02/*.png"))
             d0 = glob(os.path.abspath(i + "/disp_00.npy"))[0]
+            #m0 = glob(os.path.abspath(i + "/mask_cat.png"))[0]
+
             #d2 = glob(os.path.abspath(i + "/disp_02.npy"))[0]
 
             for c0, c2 in itertools.product(cam0, cam2):   
