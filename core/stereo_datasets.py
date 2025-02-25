@@ -124,7 +124,7 @@ class StereoDataset(data.Dataset):
 class Booster(StereoDataset):
 
     def __init__(self, aug_params=None, root="./Train", image_set='training'):
-        super(Booster, self).__init__(aug_params=aug_params, sparse=True, reader=None)
+        super(Booster, self).__init__(aug_params=aug_params, sparse=False, reader=None)
         assert os.path.exists(root)
 
         categories = glob(os.path.abspath(root + "/*"))

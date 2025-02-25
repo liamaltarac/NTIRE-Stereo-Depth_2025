@@ -14,14 +14,16 @@ from matplotlib import pyplot as plt
 import os
 import skimage.io
 import cv2
+from utils.frame_utils import readPFM
 
 
-DEVICE = 'cpu'
+DEVICE = 'cuda'
 
-os.environ['CUDA_VISIBLE_DEVICES'] = '-1'
+os.environ['CUDA_VISIBLE_DEVICES'] = '0'
+os.environ["PYTORCH_CUDA_ALLOC_CONF"] = "max_split_size_mb:256"
 
 def load_image(imfile):
-    img = np.array(Image.open(imfile)).astype(np.uint8)
+    img = np.array(Image.open(imfile)).astype(np.uint8)[..., :3]
     img = torch.from_numpy(img).permute(2, 0, 1).float()
     return img[None].to(DEVICE)
 
@@ -42,35 +44,53 @@ def demo(args):
         print(f"Found {len(left_images)} images. Saving files to {output_directory}/")
 
         for (imfile1, imfile2) in tqdm(list(zip(left_images, right_images))):
-            image1 = load_image(imfile1)
-            image2 = load_image(imfile2)
+            image1 = load_image(imfile1)[0].cpu()
+            image2 = load_image(imfile2)[0].cpu()
+            orig_size = [image1.shape[2], image1.shape[1]]
+            print("orig_size  : ", orig_size)
+
+            image1 = torch.from_numpy(cv2.resize(np.array(image1.permute(1, 2, 0)), None, fx=0.2, fy=0.2, interpolation=cv2.INTER_LINEAR)).permute(2, 0, 1)
+            image2 = torch.from_numpy(cv2.resize(np.array(image2.permute(1, 2, 0)), None, fx=0.2, fy=0.2, interpolation=cv2.INTER_LINEAR)).permute(2, 0, 1)
+            
+            print("IMG SIZE : ", image1.shape)
+            image1 = image1[None].cuda()
+            image2 = image2[None].cuda()
+
+
             padder = InputPadder(image1.shape, divis_by=32)
             image1, image2 = padder.pad(image1, image2)
             disp = model(image1, image2, iters=args.valid_iters, test_mode=True)
-            disp = padder.unpad(disp)
-            file_stem = os.path.join(output_directory, imfile1.split('/')[-1])
-            disp = disp.cpu().numpy().squeeze()
-            if args.save_png:
-                disp_16 = np.round(disp * 256).astype(np.uint16)
-                skimage.io.imsave(file_stem, disp_16)
-            # plt.imsave(file_stem, disp, cmap='jet')
+            #disp = padder.unpad(disp)
+            print("disp SIZE : ", disp.shape)
 
+            disp = padder.unpad(disp).cpu().squeeze(0).squeeze(0)
+            disp = torch.from_numpy(cv2.resize(np.array(disp), dst=None, dsize=orig_size, interpolation=cv2.INTER_LINEAR))
+
+            disp = disp.unsqueeze(0)
+
+            print(imfile1)
+            file_stem = 'Testout' #imfile1.split('/')[-2]
+            filename = os.path.join(output_directory, f'{file_stem}.png')
+            disp = disp.cpu().numpy().squeeze()
+            plt.imsave(filename, disp.squeeze(), cmap='jet')
+            
             if args.save_numpy:
-                np.save(file_stem.replace('.png', '.npy'), disp)
+                np.save(output_directory / f"{file_stem}.npy", disp.squeeze())
+
+            # disp = np.round(disp * 256).astype(np.uint16)
+            # cv2.imwrite(filename, cv2.applyColorMap(cv2.convertScaleAbs(disp.squeeze(), alpha=0.01),cv2.COLORMAP_JET), [int(cv2.IMWRITE_PNG_COMPRESSION), 0])
+
 
 if __name__ == '__main__':
     parser = argparse.ArgumentParser()
-    parser.add_argument('--restore_ckpt', help="restore checkpoint", default='checkpoints_new/sceneflow.pth')
-    parser.add_argument('--save_png', action='store_true', default=True, help='save output as gray images')
+    parser.add_argument('--restore_ckpt', help="restore checkpoint", default='./pretrained_models/igev_plusplus/sceneflow.pth')
     parser.add_argument('--save_numpy', action='store_true', help='save output as numpy arrays')
-    parser.add_argument('-l', '--left_imgs', help="path to all first (left) frames", default="/data/StereoDatasets/kitti/2015/testing/image_2/*_10.png")
-    parser.add_argument('-r', '--right_imgs', help="path to all second (right) frames", default="/data/StereoDatasets/kitti/2015/testing/image_3/*_10.png")
-    # parser.add_argument('-l', '--left_imgs', help="path to all first (left) frames", default="/data/StereoDatasets/kitti/2012/testing/colored_0/*_10.png")
-    # parser.add_argument('-r', '--right_imgs', help="path to all second (right) frames", default="/data/StereoDatasets/kitti/2012/testing/colored_1/*_10.png")
-    parser.add_argument('--output_directory', help="directory to save output", default="output/kitti2015/disp_0")
-    parser.add_argument('--mixed_precision', action='store_true', help='use mixed precision')
+    parser.add_argument('-l', '--left_imgs', help="path to all first (left) frames", default="./demo-imgs/*/im0.png")
+    parser.add_argument('-r', '--right_imgs', help="path to all second (right) frames", default="./demo-imgs/*/im1.png")
+    parser.add_argument('--output_directory', help="directory to save output", default="demo_output")
+    parser.add_argument('--mixed_precision', action='store_true', default=True, help='use mixed precision')
     parser.add_argument('--precision_dtype', default='float32', choices=['float16', 'bfloat16', 'float32'], help='Choose precision type: float16 or bfloat16 or float32')
-    parser.add_argument('--valid_iters', type=int, default=32, help='number of flow-field updates during forward pass')
+    parser.add_argument('--valid_iters', type=int, default=16, help='number of flow-field updates during forward pass')
 
     # Architecture choices
     parser.add_argument('--hidden_dims', nargs='+', type=int, default=[128]*3, help="hidden state and context dimensions")

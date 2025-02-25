@@ -6,7 +6,7 @@ import time
 from glob import glob
 from skimage import color, io
 from PIL import Image
-
+import logging
 import cv2
 cv2.setNumThreads(0)
 cv2.ocl.setUseOpenCL(False)
@@ -62,6 +62,7 @@ class FlowAugmentor:
         # spatial augmentation params
         self.crop_size = crop_size
         self.spatial_scale = spatial_scale
+        print("SPATIAL SCALE ! : ", spatial_scale)
         self.min_scale = min_scale
         self.max_scale = max_scale
         self.spatial_aug_prob = 1.0
@@ -118,10 +119,12 @@ class FlowAugmentor:
                 scale = np.maximum(
                         (self.crop_size[0] + 8) / float(ht), 
                         (self.crop_size[1] + 8) / float(wd))
+                logging.info("IMG SHAPE :", img1.shape)
                 img1 = cv2.resize(img1, None, fx=scale, fy=scale, interpolation=cv2.INTER_LINEAR)
                 img2 = cv2.resize(img2, None, fx=scale, fy=scale, interpolation=cv2.INTER_LINEAR)
                 flow = cv2.resize(flow, None, fx=scale, fy=scale, interpolation=cv2.INTER_LINEAR)
                 flow = flow * [scale, scale]
+                logging.info("IMG SHAPE :", img1.shape)
 
             min_scale = np.maximum(
                 (self.crop_size[0] + 8) / float(ht), 

@@ -1,8 +1,8 @@
 import sys
-sys.path.append('core')
+sys.path.append('core_rt')
 
 import os
-os.environ['CUDA_VISIBLE_DEVICES'] = '0,1'
+# os.environ['CUDA_VISIBLE_DEVICES'] = '0,1'
 
 import argparse
 import time
@@ -10,16 +10,13 @@ import logging
 import numpy as np
 import torch
 from tqdm import tqdm
-from igev_stereo import IGEVStereo, autocast
+from rt_igev_stereo import IGEVStereo, autocast
 import stereo_datasets as datasets
 from utils.utils import InputPadder
 from PIL import Image
 import torch.utils.data as data
 from pathlib import Path
 from matplotlib import pyplot as plt
-import cv2
-cv2.setNumThreads(0)
-cv2.ocl.setUseOpenCL(False)
 
 def count_parameters(model):
     return sum(p.numel() for p in model.parameters() if p.requires_grad)
@@ -149,7 +146,7 @@ def validate_sceneflow(model, iters=32, mixed_prec=False):
         epe = torch.abs(disp_pr - disp_gt)
 
         epe = epe.flatten()
-        val = (disp_gt.abs().flatten() < 768)
+        val = (valid_gt.flatten() >= 0.5) & (disp_gt.abs().flatten() < 192)
         if(np.isnan(epe[val].mean().item())):
             continue
 
@@ -194,7 +191,7 @@ def validate_middlebury(model, iters=32, split='MiddEval3', resolution='F', mixe
 
         occ_mask = Image.open(imageL_file.replace('im0.png', 'mask0nocc.png')).convert('L')
         occ_mask = np.ascontiguousarray(occ_mask, dtype=np.float32).flatten()
-        val = (valid_gt.reshape(-1) >= 0.5) & (occ_mask==255)
+        val = (valid_gt.reshape(-1) >= 0.5) & (flow_gt[0].reshape(-1) < 192) & (occ_mask==255)
         out = (epe_flattened > 2.0)
         image_out = out[val].float().mean().item()
         image_epe = epe_flattened[val].mean().item()
@@ -215,99 +212,21 @@ def validate_middlebury(model, iters=32, split='MiddEval3', resolution='F', mixe
     return {f'middlebury{split}-epe': epe, f'middlebury{split}-d1': d1}
 
 
-
-
-@torch.no_grad()
-def validate_booster(model, iters=32, resolution='F', mixed_prec=False, aug_params={}):
-    """ Peform validation on Booster (based on the Middlebury) """
-
-    model.eval()
-
-    #val_dataset = datasets.fetch_dataloader(aug_params)
-    #aug_params = {'spatial_scale': [aug_params.spatial_scale, aug_params.spatial_scale], 'crop_size': args.image_size}
-    val_dataset = datasets.Booster(aug_params)
-    out_list, epe_list = [], []
-    
-    val_id=0
-    for i_batch, ((imageL_file, imageR_file, disp_gt), *data_blob) in enumerate(val_dataset):
-
-        #(imageL_file, imageR_file, disp_gt), image1, image2, flow_gt, valid_gt = val_dataset[val_id]
-        image1, image2, flow_gt, valid_gt = [x for x in data_blob]
-        logging.info("IMG Shape :", np.array(image1).shape)
-        image1 = torch.from_numpy(cv2.resize(np.array(image1.permute(1, 2, 0)), None, fx=0.2, fy=0.2, interpolation=cv2.INTER_LINEAR)).permute(2, 0, 1)
-        image2 = torch.from_numpy(cv2.resize(np.array(image2.permute(1, 2, 0)), None, fx=0.2, fy=0.2, interpolation=cv2.INTER_LINEAR)).permute(2, 0, 1)
-        image1 = image1[None].cuda()
-        image2 = image2[None].cuda()
-        padder = InputPadder(image1.shape, divis_by=32)
-        image1, image2 = padder.pad(image1, image2)
-
-        with autocast(enabled=mixed_prec):
-            flow_pr = model(image1, image2, iters=iters, test_mode=True)
-        flow_pr = padder.unpad(flow_pr).cpu().squeeze(0).squeeze(0)
-        logging.info("flow_pr Shape A :", np.array(flow_pr).shape, flow_gt.shape[1], flow_gt.shape[0])
-  
-        flow_pr = torch.from_numpy(cv2.resize(np.array(flow_pr.permute(1, 0)), dst=None, dsize=[flow_gt.shape[1], flow_gt.shape[2]], interpolation=cv2.INTER_LINEAR)).permute(1,0)
-        logging.info("flow_pr Shape B:", np.array(flow_pr).shape)
-
-        flow_pr = flow_pr.unsqueeze(0)
-        assert flow_pr.shape == flow_gt.shape, (flow_pr.shape, flow_gt.shape)
-        epe = torch.sum((flow_pr - flow_gt)**2, dim=0).sqrt()
-        epe_flattened = epe.flatten()
-
-        occ_mask = Image.open(disp_gt.replace('disp_00.npy', 'mask_cat.png')).convert('L')
-        occ_mask = np.ascontiguousarray(occ_mask, dtype=np.float32).flatten()
-        val = (valid_gt.reshape(-1) >= 0.5) & (occ_mask==255)
-        out = (epe_flattened > 2.0)
-        image_out = out[val].float().mean().item()
-        image_epe = epe_flattened[val].mean().item()
-        logging.info(f"Booster Iter {val_id+1} out of {len(val_dataset)}. EPE {round(image_epe,4)} D1 {round(image_out,4)}")
-        val_id+=1
-        epe_list.append(image_epe)
-        out_list.append(image_out)
-
-        break
-
-    plt.imshow(flow_pr)
-    plt.show()
-
-    epe_list = np.array(epe_list)
-    out_list = np.array(out_list)
-
-    epe = np.mean(epe_list)
-    d1 = 100 * np.mean(out_list)
-
-    #f = open('test_middlebury.txt', 'a')
-    #f.write("Validation Middlebury: %f, %f\n" % (epe, d1))
-
-    print(f"Validation Booster: EPE {epe}, D1 {d1}")
-    return {f'Booster-epe': epe, f'middlebury-d1': d1}
-
-
 if __name__ == '__main__':
     parser = argparse.ArgumentParser()
-    parser.add_argument('--restore_ckpt', help="restore checkpoint", default='checkpoints_new/sceneflow.pth')
-    parser.add_argument('--dataset', help="dataset for evaluation", default='booster', choices=["eth3d", "kitti", "sceneflow", "booster"] + [f"middlebury_{s}" for s in 'FHQ'])
+    parser.add_argument('--restore_ckpt', help="restore checkpoint", default='./pretrained_models/igev_rt/sceneflow.pth')
+    parser.add_argument('--dataset', help="dataset for evaluation", default='sceneflow', choices=["eth3d", "kitti", "sceneflow"] + [f"middlebury_{s}" for s in 'FHQ'])
     parser.add_argument('--mixed_precision', default=False, action='store_true', help='use mixed precision')
     parser.add_argument('--precision_dtype', default='float32', choices=['float16', 'bfloat16', 'float32'], help='Choose precision type: float16 or bfloat16 or float32')
-    parser.add_argument('--valid_iters', type=int, default=22, help='number of flow-field updates during forward pass')
+    parser.add_argument('--valid_iters', type=int, default=8, help='number of flow-field updates during forward pass')
 
     # Architecure choices
-    parser.add_argument('--hidden_dims', nargs='+', type=int, default=[128]*3, help="hidden state and context dimensions")
+    parser.add_argument('--hidden_dim', nargs='+', type=int, default=96, help="hidden state and context dimensions")
     parser.add_argument('--corr_levels', type=int, default=2, help="number of levels in the correlation pyramid")
     parser.add_argument('--corr_radius', type=int, default=4, help="width of the correlation pyramid")
     parser.add_argument('--n_downsample', type=int, default=2, help="resolution of the disparity field (1/2^K)")
     parser.add_argument('--n_gru_layers', type=int, default=3, help="number of hidden GRU levels")
-    parser.add_argument('--max_disp', type=int, default=768, help="max disp range")
-    parser.add_argument('--s_disp_range', type=int, default=48, help="max disp of small disparity-range geometry encoding volume")
-    parser.add_argument('--m_disp_range', type=int, default=96, help="max disp of medium disparity-range geometry encoding volume")
-    parser.add_argument('--l_disp_range', type=int, default=192, help="max disp of large disparity-range geometry encoding volume")
-    parser.add_argument('--s_disp_interval', type=int, default=1, help="disp interval of small disparity-range geometry encoding volume")
-    parser.add_argument('--m_disp_interval', type=int, default=2, help="disp interval of medium disparity-range geometry encoding volume")
-    parser.add_argument('--l_disp_interval', type=int, default=4, help="disp interval of large disparity-range geometry encoding volume")
-
-    parser.add_argument('--spatial_scale', type=float, nargs='+', default=[0.5, 0.5], help='re-scale the images randomly')
-    parser.add_argument('--image_size', type=int, nargs='+', default=[256, 768], help="size of the random image crops used during training.")
-
+    parser.add_argument('--max_disp', type=int, default=192, help="max disp range")
     args = parser.parse_args()
 
     model = torch.nn.DataParallel(IGEVStereo(args), device_ids=[0])
@@ -338,6 +257,3 @@ if __name__ == '__main__':
 
     elif args.dataset == 'sceneflow':
         validate_sceneflow(model, iters=args.valid_iters, mixed_prec=args.mixed_precision)
-
-    elif args.dataset == 'booster':
-        validate_booster(model, iters=args.valid_iters, mixed_prec=args.mixed_precision)#, aug_params=args)
