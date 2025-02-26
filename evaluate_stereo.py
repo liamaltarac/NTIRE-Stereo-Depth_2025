@@ -250,6 +250,10 @@ def validate_booster(model, iters=32, resolution='F', mixed_prec=False, aug_para
         logging.info("flow_pr Shape B:", np.array(flow_pr).shape)
 
         flow_pr = flow_pr.unsqueeze(0)
+
+        flow_pr = (flow_pr - flow_pr.min()) / (flow_pr.max() - flow_pr.min())
+        flow_pr = flow_pr * 798
+
         assert flow_pr.shape == flow_gt.shape, (flow_pr.shape, flow_gt.shape)
         epe = torch.sum((flow_pr - flow_gt)**2, dim=0).sqrt()
         epe_flattened = epe.flatten()
@@ -267,7 +271,7 @@ def validate_booster(model, iters=32, resolution='F', mixed_prec=False, aug_para
 
         break
 
-    plt.imshow(flow_pr)
+    plt.imshow(flow_pr[0])
     plt.show()
 
     epe_list = np.array(epe_list)
