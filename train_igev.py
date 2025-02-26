@@ -41,6 +41,12 @@ def sequence_loss(args, agg_preds, iter_preds, disp_gt, valid, loss_gamma=0.9):
         max_disp0 = 192
         max_disp1 = 192
         max_disp = 192
+
+    elif ('booster' in args.train_datasets):
+        max_disp0 = 192
+        max_disp1 = 384
+        max_disp = 798
+
     else:
         max_disp0 = 192
         max_disp1 = 384
@@ -82,9 +88,9 @@ def fetch_optimizer(args, model):
     """ Create the optimizer and learning rate scheduler """
     optimizer = optim.AdamW(model.parameters(), lr=args.lr, weight_decay=args.wdecay, eps=1e-8)
 
-    scheduler = optim.lr_scheduler.OneCycleLR(optimizer, args.lr, args.num_steps+100,
-            pct_start=0.01, cycle_momentum=False, anneal_strategy='linear')
-    return optimizer, scheduler
+    '''scheduler = optim.lr_scheduler.OneCycleLR(optimizer, args.lr, args.num_steps+100,
+            pct_start=0.01, cycle_momentum=False, anneal_strategy='linear')'''
+    return optimizer
 
 
 class Logger:
@@ -99,11 +105,11 @@ class Logger:
 
     def _print_training_status(self):
         metrics_data = [self.running_loss[k]/Logger.SUM_FREQ for k in sorted(self.running_loss.keys())]
-        training_str = "[{:6d}, {:10.7f}] ".format(self.total_steps+1, self.scheduler.get_last_lr()[0])
+        #training_str = "[{:6d}, {:10.7f}] ".format(self.total_steps+1)
         metrics_str = ("{:10.4f}, "*len(metrics_data)).format(*metrics_data)
         
         # print the training status
-        logging.info(f"Training Metrics ({self.total_steps}): {training_str + metrics_str}")
+        logging.info(f"Training Metrics ({self.total_steps}): {metrics_str}")
 
         if self.writer is None:
             self.writer = SummaryWriter(log_dir=self.logdir)
@@ -142,9 +148,9 @@ def train(args):
     print("Parameter Count: %d" % count_parameters(model))
 
     train_loader = datasets.fetch_dataloader(args)
-    optimizer, scheduler = fetch_optimizer(args, model)
+    optimizer = fetch_optimizer(args, model)
     total_steps = 0
-    logger = Logger(model, scheduler, args.logdir)
+    logger = Logger(model, None, args.logdir)
 
     if args.restore_ckpt is not None:
         assert args.restore_ckpt.endswith(".pth")
@@ -157,7 +163,7 @@ def train(args):
     model.train()
     model.module.freeze_bn() # We keep BatchNorm frozen
 
-    validation_frequency = 10000
+    validation_frequency = 30
 
     scaler = GradScaler(enabled=args.mixed_precision)
 
@@ -181,7 +187,7 @@ def train(args):
             torch.nn.utils.clip_grad_norm_(model.parameters(), 1.0)
 
             scaler.step(optimizer)
-            scheduler.step()
+            #scheduler.step()
             scaler.update()
             logger.push(metrics)
 
@@ -197,6 +203,8 @@ def train(args):
                     results = validate_middlebury(model.module, iters=args.valid_iters)
                 elif 'eth3d' in args.train_datasets:
                     results = validate_eth3d(model.module, iters=args.valid_iters)
+                elif 'booster' in args.train_datasets:
+                    results = validate_booster(model.module, iters=args.valid_iters)
                 else:
                     print(f"Val dataset is not supported.")
                 # logger.write_dict(results)
@@ -228,7 +236,7 @@ if __name__ == '__main__':
     # Training parameters
     parser.add_argument('--batch_size', type=int, default=1, help="batch size used during training.")
     parser.add_argument('--train_datasets', default='booster', choices=['sceneflow', 'kitti', 'middlebury_train', 'middlebury_finetune', 'eth3d_train', 'eth3d_finetune', 'booster'], help="training datasets.")
-    parser.add_argument('--lr', type=float, default=0.0002, help="max learning rate.")
+    parser.add_argument('--lr', type=float, default=1e-6, help="max learning rate.")
     parser.add_argument('--num_steps', type=int, default=200000, help="length of training schedule.")
     parser.add_argument('--image_size', type=int, nargs='+', default=[256, 768], help="size of the random image crops used during training.")
     parser.add_argument('--train_iters', type=int, default=22, help="number of updates to the disparity field in each forward pass.")

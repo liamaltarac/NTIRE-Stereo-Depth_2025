@@ -112,7 +112,7 @@ class FlowAugmentor:
 
     def spatial_transform(self, img1, img2, flow):
         # randomly sample scale
-        if self.spatial_scale:           
+        '''if self.spatial_scale:           
             ht, wd = img1.shape[:2]
             if (ht < self.crop_size[0]) or (wd < self.crop_size[1]):
                 scale = np.maximum(
@@ -137,44 +137,31 @@ class FlowAugmentor:
             scale_x = np.clip(scale_x, min_scale, None)
             scale_y = np.clip(scale_y, min_scale, None)
 
-            if (np.random.rand() < self.spatial_aug_prob) or (ht < self.crop_size[0]) or (wd < self.crop_size[1]):
+            if (np.random.rand() < self.spatial_aug_prob) or (ht < self.crop_size[0]) or (wd < self.crop_size[1]):'''
                 # rescale the images
-                img1 = cv2.resize(img1, None, fx=scale_x, fy=scale_y, interpolation=cv2.INTER_LINEAR)
-                img2 = cv2.resize(img2, None, fx=scale_x, fy=scale_y, interpolation=cv2.INTER_LINEAR)
-                flow = cv2.resize(flow, None, fx=scale_x, fy=scale_y, interpolation=cv2.INTER_LINEAR)
-                flow = flow * [scale_x, scale_y]
+        scale_x = 0.2
+        scale_y = 0.2
+        img1 = cv2.resize(img1, None, fx=scale_x, fy=scale_y, interpolation=cv2.INTER_LINEAR)
+        img2 = cv2.resize(img2, None, fx=scale_x, fy=scale_y, interpolation=cv2.INTER_LINEAR)
+        flow = cv2.resize(flow, None, fx=scale_x, fy=scale_y, interpolation=cv2.INTER_LINEAR)
+        flow = flow * [scale_x, scale_y]
 
-        if self.do_flip:
-            if np.random.rand() < self.h_flip_prob and self.do_flip == 'hf': # h-flip
-                img1 = img1[:, ::-1]
-                img2 = img2[:, ::-1]
-                flow = flow[:, ::-1] * [-1.0, 1.0]
+        if np.random.rand() < self.h_flip_prob and self.do_flip == 'hf': # h-flip
+            img1 = img1[:, ::-1]
+            img2 = img2[:, ::-1]
+            flow = flow[:, ::-1] * [-1.0, 1.0]
 
-            if np.random.rand() < self.h_flip_prob and self.do_flip == 'h': # h-flip for stereo
-                tmp = img1[:, ::-1]
-                img1 = img2[:, ::-1]
-                img2 = tmp
+        if np.random.rand() < self.h_flip_prob and self.do_flip == 'h': # h-flip for stereo
+            tmp = img1[:, ::-1]
+            img1 = img2[:, ::-1]
+            img2 = tmp
 
-            if np.random.rand() < self.v_flip_prob and self.do_flip == 'v': # v-flip
-                img1 = img1[::-1, :]
-                img2 = img2[::-1, :]
-                flow = flow[::-1, :] * [1.0, -1.0]
-        if self.yjitter:
-            y0 = np.random.randint(2, img1.shape[0] - self.crop_size[0] - 2)
-            x0 = np.random.randint(2, img1.shape[1] - self.crop_size[1] - 2)
+        if np.random.rand() < self.v_flip_prob and self.do_flip == 'v': # v-flip
+            img1 = img1[::-1, :]
+            img2 = img2[::-1, :]
+            flow = flow[::-1, :] * [1.0, -1.0]
 
-            y1 = y0 + np.random.randint(-2, 2 + 1)
-            img1 = img1[y0:y0+self.crop_size[0], x0:x0+self.crop_size[1]]
-            img2 = img2[y1:y1+self.crop_size[0], x0:x0+self.crop_size[1]]
-            flow = flow[y0:y0+self.crop_size[0], x0:x0+self.crop_size[1]]
-
-        else:
-            y0 = np.random.randint(0, img1.shape[0] - self.crop_size[0])
-            x0 = np.random.randint(0, img1.shape[1] - self.crop_size[1])
-            
-            img1 = img1[y0:y0+self.crop_size[0], x0:x0+self.crop_size[1]]
-            img2 = img2[y0:y0+self.crop_size[0], x0:x0+self.crop_size[1]]
-            flow = flow[y0:y0+self.crop_size[0], x0:x0+self.crop_size[1]]
+        
 
         return img1, img2, flow
 

@@ -138,11 +138,16 @@ class Booster(StereoDataset):
             #m0 = glob(os.path.abspath(i + "/mask_cat.png"))[0]
 
             #d2 = glob(os.path.abspath(i + "/disp_02.npy"))[0]
-
-            for c0, c2 in itertools.product(cam0, cam2):   
-                
-                self.image_list += [ [c0, c2] ]
-                self.disparity_list += [ d0 ]
+            if image_set == 'training':
+                for c0, c2 in itertools.product(cam0, cam2):   
+                    
+                    self.image_list += [ [c0, c2] ]
+                    self.disparity_list += [ d0 ]
+            elif image_set=='validation':
+                for i in range(len(cam0)):   
+                    
+                    self.image_list += [ [cam0[i], cam2[i]] ]
+                    self.disparity_list += [ d0 ]
 
 class SceneFlowDatasets(StereoDataset):
     def __init__(self, aug_params=None, root='/data/StereoDatasets/sceneflow/', dstype='frames_finalpass', things_test=False):

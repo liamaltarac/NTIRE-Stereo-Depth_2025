@@ -225,7 +225,7 @@ def validate_booster(model, iters=32, resolution='F', mixed_prec=False, aug_para
 
     #val_dataset = datasets.fetch_dataloader(aug_params)
     #aug_params = {'spatial_scale': [aug_params.spatial_scale, aug_params.spatial_scale], 'crop_size': args.image_size}
-    val_dataset = datasets.Booster(aug_params)
+    val_dataset = datasets.Booster(aug_params, root='./Val', image_set='validation')
     out_list, epe_list = [], []
     
     val_id=0
@@ -234,8 +234,8 @@ def validate_booster(model, iters=32, resolution='F', mixed_prec=False, aug_para
         #(imageL_file, imageR_file, disp_gt), image1, image2, flow_gt, valid_gt = val_dataset[val_id]
         image1, image2, flow_gt, valid_gt = [x for x in data_blob]
         logging.info("IMG Shape :", np.array(image1).shape)
-        image1 = torch.from_numpy(cv2.resize(np.array(image1.permute(1, 2, 0)), None, fx=0.2, fy=0.2, interpolation=cv2.INTER_LINEAR)).permute(2, 0, 1)
-        image2 = torch.from_numpy(cv2.resize(np.array(image2.permute(1, 2, 0)), None, fx=0.2, fy=0.2, interpolation=cv2.INTER_LINEAR)).permute(2, 0, 1)
+        image1 = torch.from_numpy(cv2.resize(np.array(image1.permute(1, 2, 0)), None, fx=0.2, fy=0.2, interpolation=cv2.INTER_CUBIC )).permute(2, 0, 1)
+        image2 = torch.from_numpy(cv2.resize(np.array(image2.permute(1, 2, 0)), None, fx=0.2, fy=0.2, interpolation=cv2.INTER_CUBIC )).permute(2, 0, 1)
         image1 = image1[None].cuda()
         image2 = image2[None].cuda()
         padder = InputPadder(image1.shape, divis_by=32)
@@ -271,7 +271,7 @@ def validate_booster(model, iters=32, resolution='F', mixed_prec=False, aug_para
 
         break
 
-    plt.imshow(flow_pr[0])
+    plt.imshow(flow_gt[0])
     plt.show()
 
     epe_list = np.array(epe_list)
@@ -293,7 +293,7 @@ if __name__ == '__main__':
     parser.add_argument('--dataset', help="dataset for evaluation", default='booster', choices=["eth3d", "kitti", "sceneflow", "booster"] + [f"middlebury_{s}" for s in 'FHQ'])
     parser.add_argument('--mixed_precision', default=False, action='store_true', help='use mixed precision')
     parser.add_argument('--precision_dtype', default='float32', choices=['float16', 'bfloat16', 'float32'], help='Choose precision type: float16 or bfloat16 or float32')
-    parser.add_argument('--valid_iters', type=int, default=22, help='number of flow-field updates during forward pass')
+    parser.add_argument('--valid_iters', type=int, default=32, help='number of flow-field updates during forward pass')
 
     # Architecure choices
     parser.add_argument('--hidden_dims', nargs='+', type=int, default=[128]*3, help="hidden state and context dimensions")
