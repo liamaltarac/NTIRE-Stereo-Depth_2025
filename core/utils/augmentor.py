@@ -116,17 +116,18 @@ class FlowAugmentor:
         if self.spatial_scale:           
             ht, wd = img1.shape[:2]
             if (ht < self.crop_size[0]) or (wd < self.crop_size[1]):
-                scale = np.maximum(
+                '''scale = np.maximum(
                         (self.crop_size[0] + 8) / float(ht), 
-                        (self.crop_size[1] + 8) / float(wd))
+                        (self.crop_size[1] + 8) / float(wd))'''
                 logging.info("IMG SHAPE :", img1.shape)
+                scale = np.random.uniform(0.05, 0.3)
                 img1 = cv2.resize(img1, None, fx=scale, fy=scale, interpolation=cv2.INTER_LINEAR)
                 img2 = cv2.resize(img2, None, fx=scale, fy=scale, interpolation=cv2.INTER_LINEAR)
                 flow = cv2.resize(flow, None, fx=scale, fy=scale, interpolation=cv2.INTER_LINEAR)
                 flow = flow * [scale, scale]
                 logging.info("IMG SHAPE :", img1.shape)
 
-            min_scale = np.maximum(
+            '''min_scale = np.maximum(
                 (self.crop_size[0] + 8) / float(ht), 
                 (self.crop_size[1] + 8) / float(wd))
 
@@ -145,7 +146,7 @@ class FlowAugmentor:
                 img1 = cv2.resize(img1, None, fx=scale_x, fy=scale_y, interpolation=cv2.INTER_LINEAR)
                 img2 = cv2.resize(img2, None, fx=scale_x, fy=scale_y, interpolation=cv2.INTER_LINEAR)
                 flow = cv2.resize(flow, None, fx=scale_x, fy=scale_y, interpolation=cv2.INTER_LINEAR)
-                flow = flow * [scale_x, scale_y]
+                flow = flow * [scale_x, scale_y]'''
 
         if self.do_flip:
             if np.random.rand() < self.h_flip_prob and self.do_flip == 'hf': # h-flip

@@ -122,6 +122,8 @@ def readFlowKITTI(filename):
     return flow, valid
 
 def readDispKITTI(filename):
+    print("FFFFF File : ", filename)
+
     disp = cv2.imread(filename, cv2.IMREAD_ANYDEPTH) / 256.0
     valid = disp > 0.0
     return disp, valid

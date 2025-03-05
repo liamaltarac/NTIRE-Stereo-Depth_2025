@@ -177,10 +177,18 @@ def compute_errors(gt, pred):
             'rmse_log': Root mean squared error on the log scale
             'silog': Scale invariant log error
     """
+    try:
+        gt = gt.numpy()
+    except Exception as e:
+        pass
+    try:
+        pred = pred.numpy()
+    except Exception as e:
+        pass
     thresh = np.maximum((gt / pred), (pred / gt))
-    a1 = (thresh < 1.25).mean()
-    a2 = (thresh < 1.25 ** 2).mean()
-    a3 = (thresh < 1.25 ** 3).mean()
+    a1 = np.mean((thresh < 1.25).astype(np.float))
+    a2 = np.mean((thresh < 1.25 ** 2).astype(np.float))
+    a3 = np.mean((thresh < 1.25 ** 3).astype(np.float))
 
     abs_rel = np.mean(np.abs(gt - pred) / gt)
     sq_rel = np.mean(((gt - pred) ** 2) / gt)

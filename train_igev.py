@@ -74,11 +74,15 @@ def sequence_loss(args, agg_preds, iter_preds, disp_gt, valid, loss_gamma=0.9):
     epe = torch.sum((iter_preds[-1] - disp_gt)**2, dim=1).sqrt()
     epe = epe.view(-1)[mask.view(-1)]
 
+    rmse = (iter_preds[-1][mask.bool()] - disp_gt[mask.bool()]) ** 2
+    rmse = torch.sqrt(torch.mean(rmse))
+
     metrics = {
         'epe': epe.mean().item(),
         '1px': (epe < 1).float().mean().item(),
         '3px': (epe < 3).float().mean().item(),
         '5px': (epe < 5).float().mean().item(),
+        'rmse': rmse
     }
 
     return disp_loss, metrics
@@ -94,7 +98,7 @@ def fetch_optimizer(args, model):
 
 
 class Logger:
-    SUM_FREQ = 100
+    SUM_FREQ = 1
     def __init__(self, model, scheduler, logdir):
         self.model = model
         self.scheduler = scheduler
@@ -105,7 +109,7 @@ class Logger:
 
     def _print_training_status(self):
         metrics_data = [self.running_loss[k]/Logger.SUM_FREQ for k in sorted(self.running_loss.keys())]
-        #training_str = "[{:6d}, {:10.7f}] ".format(self.total_steps+1)
+        training_str = "[{:6d}] ".format(self.total_steps+1)
         metrics_str = ("{:10.4f}, "*len(metrics_data)).format(*metrics_data)
         
         # print the training status
@@ -236,7 +240,7 @@ if __name__ == '__main__':
     # Training parameters
     parser.add_argument('--batch_size', type=int, default=1, help="batch size used during training.")
     parser.add_argument('--train_datasets', default='booster', choices=['sceneflow', 'kitti', 'middlebury_train', 'middlebury_finetune', 'eth3d_train', 'eth3d_finetune', 'booster'], help="training datasets.")
-    parser.add_argument('--lr', type=float, default=1e-6, help="max learning rate.")
+    parser.add_argument('--lr', type=float, default=1e-4, help="max learning rate.")
     parser.add_argument('--num_steps', type=int, default=200000, help="length of training schedule.")
     parser.add_argument('--image_size', type=int, nargs='+', default=[256, 768], help="size of the random image crops used during training.")
     parser.add_argument('--train_iters', type=int, default=22, help="number of updates to the disparity field in each forward pass.")

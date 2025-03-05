@@ -13,6 +13,7 @@ from tqdm import tqdm
 from igev_stereo import IGEVStereo, autocast
 import stereo_datasets as datasets
 from utils.utils import InputPadder
+from misc import compute_errors
 from PIL import Image
 import torch.utils.data as data
 from pathlib import Path
@@ -226,70 +227,90 @@ def validate_booster(model, iters=32, resolution='F', mixed_prec=False, aug_para
     #val_dataset = datasets.fetch_dataloader(aug_params)
     #aug_params = {'spatial_scale': [aug_params.spatial_scale, aug_params.spatial_scale], 'crop_size': args.image_size}
     val_dataset = datasets.Booster(aug_params, root='./Val', image_set='validation')
-    out_list, epe_list = [], []
+    out_list, epe_list, rmse_list = [], [], []
     
-    val_id=0
-    for i_batch, ((imageL_file, imageR_file, disp_gt), *data_blob) in enumerate(val_dataset):
+    for val_id in range(len(val_dataset)):
+        (imageL_file, imageR_file, disp_gt), *data_blob = val_dataset[val_id]
 
         #(imageL_file, imageR_file, disp_gt), image1, image2, flow_gt, valid_gt = val_dataset[val_id]
         image1, image2, flow_gt, valid_gt = [x for x in data_blob]
-        logging.info("IMG Shape :", np.array(image1).shape)
-        image1 = torch.from_numpy(cv2.resize(np.array(image1.permute(1, 2, 0)), None, fx=0.2, fy=0.2, interpolation=cv2.INTER_CUBIC )).permute(2, 0, 1)
-        image2 = torch.from_numpy(cv2.resize(np.array(image2.permute(1, 2, 0)), None, fx=0.2, fy=0.2, interpolation=cv2.INTER_CUBIC )).permute(2, 0, 1)
+        in_h = image1.shape[1]
+        #logging.info("IMG Shape :", np.array(image1).shape)
+        scale = 0.3
+        image1 = torch.from_numpy(cv2.resize(np.array(image1.permute(1, 2, 0)), None, fx=scale, fy=scale, interpolation=cv2.INTER_CUBIC )).permute(2, 0, 1)
+        image2 = torch.from_numpy(cv2.resize(np.array(image2.permute(1, 2, 0)), None, fx=scale, fy=scale, interpolation=cv2.INTER_CUBIC )).permute(2, 0, 1)
+
         image1 = image1[None].cuda()
         image2 = image2[None].cuda()
+        #logging.info("IMG New Shape :", image1.shape)
+
         padder = InputPadder(image1.shape, divis_by=32)
         image1, image2 = padder.pad(image1, image2)
+        eval_h = image1.shape[2]
 
         with autocast(enabled=mixed_prec):
             flow_pr = model(image1, image2, iters=iters, test_mode=True)
         flow_pr = padder.unpad(flow_pr).cpu().squeeze(0).squeeze(0)
-        logging.info("flow_pr Shape A :", np.array(flow_pr).shape, flow_gt.shape[1], flow_gt.shape[0])
-  
-        flow_pr = torch.from_numpy(cv2.resize(np.array(flow_pr.permute(1, 0)), dst=None, dsize=[flow_gt.shape[1], flow_gt.shape[2]], interpolation=cv2.INTER_LINEAR)).permute(1,0)
-        logging.info("flow_pr Shape B:", np.array(flow_pr).shape)
+        #logging.info("flow_pr Shape A :", np.array(flow_pr).shape, flow_gt.shape[1], flow_gt.shape[0])
+         
+        t = float(in_h) / float(eval_h)
+
+        flow_pr = torch.from_numpy(cv2.resize(np.array(flow_pr.permute(1, 0)), dst=None, dsize=[flow_gt.shape[1], flow_gt.shape[2]], interpolation=cv2.INTER_LINEAR)).permute(1,0) * t
+        #logging.info(f"flow_pr Shape B:, {np.array(flow_pr).shape}")
 
         flow_pr = flow_pr.unsqueeze(0)
 
-        flow_pr = (flow_pr - flow_pr.min()) / (flow_pr.max() - flow_pr.min())
-        flow_pr = flow_pr * 798
+        fig, axs = plt.subplots(1,3)
+        axs[0].imshow(flow_gt[0])
+        axs[1].imshow(flow_pr[0])
+        axs[2].imshow(np.abs(flow_gt[0] - flow_pr[0]))
+
+        plt.show()
+
+        '''flow_pr = ((flow_pr - flow_pr.min()) / (flow_pr.max() - flow_pr.min())) 
+        flow_pr = flow_pr * 798'''
 
         assert flow_pr.shape == flow_gt.shape, (flow_pr.shape, flow_gt.shape)
-        epe = torch.sum((flow_pr - flow_gt)**2, dim=0).sqrt()
+        '''epe = torch.sum((flow_pr - flow_gt)**2, dim=0).sqrt()
         epe_flattened = epe.flatten()
 
         occ_mask = Image.open(disp_gt.replace('disp_00.npy', 'mask_cat.png')).convert('L')
+ 
         occ_mask = np.ascontiguousarray(occ_mask, dtype=np.float32).flatten()
         val = (valid_gt.reshape(-1) >= 0.5) & (occ_mask==255)
+
         out = (epe_flattened > 2.0)
         image_out = out[val].float().mean().item()
         image_epe = epe_flattened[val].mean().item()
         logging.info(f"Booster Iter {val_id+1} out of {len(val_dataset)}. EPE {round(image_epe,4)} D1 {round(image_out,4)}")
-        val_id+=1
         epe_list.append(image_epe)
-        out_list.append(image_out)
+        out_list.append(image_out)'''
+        
 
-        break
+        rmse = compute_errors(flow_gt[flow_gt>0.5], flow_pr[flow_gt>0.5])['rmse']
+        rmse_list.append(rmse)
+        logging.info(f"Booster Iter {val_id+1} out of {len(val_dataset)}. RMSE {round(rmse,4)} ")
 
-    plt.imshow(flow_gt[0])
-    plt.show()
 
-    epe_list = np.array(epe_list)
-    out_list = np.array(out_list)
 
-    epe = np.mean(epe_list)
-    d1 = 100 * np.mean(out_list)
 
+    #epe_list = np.array(epe_list)
+    #out_list = np.array(out_list)
+    rmse_list = np.array(rmse_list)
+
+    #epe = np.mean(epe_list)
+    #d1 = 100 * np.mean(out_list)
+    rmse = np.mean(rmse_list)
     #f = open('test_middlebury.txt', 'a')
     #f.write("Validation Middlebury: %f, %f\n" % (epe, d1))
 
-    print(f"Validation Booster: EPE {epe}, D1 {d1}")
-    return {f'Booster-epe': epe, f'middlebury-d1': d1}
+    print(f"Validation Booster: RMSE {rmse}")
+    return {f'Booster-epe': rmse}
 
 
 if __name__ == '__main__':
     parser = argparse.ArgumentParser()
-    parser.add_argument('--restore_ckpt', help="restore checkpoint", default='checkpoints_new/sceneflow.pth')
+    parser.add_argument('--restore_ckpt', help="restore checkpoint", default='checkpoints_new/kitti2015.pth')
     parser.add_argument('--dataset', help="dataset for evaluation", default='booster', choices=["eth3d", "kitti", "sceneflow", "booster"] + [f"middlebury_{s}" for s in 'FHQ'])
     parser.add_argument('--mixed_precision', default=False, action='store_true', help='use mixed precision')
     parser.add_argument('--precision_dtype', default='float32', choices=['float16', 'bfloat16', 'float32'], help='Choose precision type: float16 or bfloat16 or float32')
