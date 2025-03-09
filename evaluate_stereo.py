@@ -226,7 +226,7 @@ def validate_booster(model, iters=32, resolution='F', mixed_prec=False, aug_para
 
     #val_dataset = datasets.fetch_dataloader(aug_params)
     #aug_params = {'spatial_scale': [aug_params.spatial_scale, aug_params.spatial_scale], 'crop_size': args.image_size}
-    val_dataset = datasets.Booster(aug_params, root='./Val', image_set='validation')
+    val_dataset = datasets.Booster(aug_params, root='./Train', image_set='validation')
     out_list, epe_list, rmse_list = [], [], []
     
     for val_id in range(len(val_dataset)):
@@ -236,7 +236,7 @@ def validate_booster(model, iters=32, resolution='F', mixed_prec=False, aug_para
         image1, image2, flow_gt, valid_gt = [x for x in data_blob]
         in_h = image1.shape[1]
         #logging.info("IMG Shape :", np.array(image1).shape)
-        scale = 0.3
+        scale = 0.2
         image1 = torch.from_numpy(cv2.resize(np.array(image1.permute(1, 2, 0)), None, fx=scale, fy=scale, interpolation=cv2.INTER_CUBIC )).permute(2, 0, 1)
         image2 = torch.from_numpy(cv2.resize(np.array(image2.permute(1, 2, 0)), None, fx=scale, fy=scale, interpolation=cv2.INTER_CUBIC )).permute(2, 0, 1)
 
@@ -260,12 +260,12 @@ def validate_booster(model, iters=32, resolution='F', mixed_prec=False, aug_para
 
         flow_pr = flow_pr.unsqueeze(0)
 
-        fig, axs = plt.subplots(1,3)
+        '''fig, axs = plt.subplots(1,3)
         axs[0].imshow(flow_gt[0])
         axs[1].imshow(flow_pr[0])
         axs[2].imshow(np.abs(flow_gt[0] - flow_pr[0]))
 
-        plt.show()
+        plt.show()'''
 
         '''flow_pr = ((flow_pr - flow_pr.min()) / (flow_pr.max() - flow_pr.min())) 
         flow_pr = flow_pr * 798'''
@@ -286,6 +286,7 @@ def validate_booster(model, iters=32, resolution='F', mixed_prec=False, aug_para
         epe_list.append(image_epe)
         out_list.append(image_out)'''
         
+        flow_pr = np.ascontiguousarray(flow_pr.to(torch.float16).cpu().numpy(), dtype='<f4')
 
         rmse = compute_errors(flow_gt[flow_gt>0.5], flow_pr[flow_gt>0.5])['rmse']
         rmse_list.append(rmse)
@@ -310,7 +311,7 @@ def validate_booster(model, iters=32, resolution='F', mixed_prec=False, aug_para
 
 if __name__ == '__main__':
     parser = argparse.ArgumentParser()
-    parser.add_argument('--restore_ckpt', help="restore checkpoint", default='checkpoints_new/kitti2015.pth')
+    parser.add_argument('--restore_ckpt', help="restore checkpoint", default='checkpoints_new/sceneflow.pth')
     parser.add_argument('--dataset', help="dataset for evaluation", default='booster', choices=["eth3d", "kitti", "sceneflow", "booster"] + [f"middlebury_{s}" for s in 'FHQ'])
     parser.add_argument('--mixed_precision', default=False, action='store_true', help='use mixed precision')
     parser.add_argument('--precision_dtype', default='float32', choices=['float16', 'bfloat16', 'float32'], help='Choose precision type: float16 or bfloat16 or float32')
