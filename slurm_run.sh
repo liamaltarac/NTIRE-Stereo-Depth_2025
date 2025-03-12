@@ -27,7 +27,7 @@ pip install --no-index --upgrade pip
 pip install --no-index torch==2.4.1 torchvision==0.19.1 torchaudio==2.4.1
 pip install  --no-index  -r requirements.txt
 pip install --no-index omegaconf scipy trimesh imageio joblib pandas timm einops
-
+pip install transformations
 
 # Install Open3D from the official source
 #pip install  open3d -f https://www.open3d.org/docs/latest/getting_started.html

@@ -8,5 +8,4 @@ scikit-learn
 ruamel.yaml
 pyyaml
 imageio
-transformations
 gdown

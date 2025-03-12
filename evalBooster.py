@@ -13,8 +13,8 @@ import torch
 import imageio
 from pathlib import Path
 from omegaconf import OmegaConf
-from FoundationStereo2.core.utils.utils import InputPadder
-from FoundationStereo2.core.foundation_stereo import FoundationStereo
+from FoundationStereo.core.utils.utils import InputPadder
+from FoundationStereo.core.foundation_stereo import FoundationStereo
 
 # Helper Function to Compute Depth
 def compute_depth(disp, K, baseline):
