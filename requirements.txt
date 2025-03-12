@@ -1,7 +1,6 @@
 scikit-image
 imgaug
 ninja
-timm
 albumentations
 jupyterlab
 joblib
@@ -10,5 +9,4 @@ ruamel.yaml
 pyyaml
 imageio
 transformations
-einops
 gdown

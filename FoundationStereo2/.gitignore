@@ -1,0 +1,5 @@
+pretrained_models/*
+output/*
+*.pyc
+weight/
+__pycache__
