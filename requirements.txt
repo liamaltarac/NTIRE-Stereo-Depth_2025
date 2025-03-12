@@ -1,10 +1,7 @@
 h5py
-numpy==1.23.5
 opencv-python
 huggingface_hub
 pillow
-transformers
-DISTS_pytorch
 pytorch_msssim
 tqdm
 scipy
@@ -28,3 +25,4 @@ transformations
 einops
 gdown
 nodejs
+

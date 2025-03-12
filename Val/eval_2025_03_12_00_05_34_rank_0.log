@@ -1,7 +1,0 @@
-03-12 00:05:34.212 Network Arch: network.EBLNet.EBLNet_resnet50_os8
-03-12 00:05:34.216 Exp_name: 
-03-12 00:05:34.217 Ckpt path: 
-03-12 00:05:34.217 Scales : 1.0
-03-12 00:05:34.217 Inference mode: sliding
-03-12 00:05:34.218 Load model file: 
-03-12 00:05:35.212 Model params = 114.1M
