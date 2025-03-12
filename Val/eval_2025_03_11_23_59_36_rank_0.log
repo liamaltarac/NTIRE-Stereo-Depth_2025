@@ -1,0 +1,7 @@
+03-11 23:59:36.493 Network Arch: network.EBLNet.EBLNet_resnet50_os8
+03-11 23:59:36.497 Exp_name: 
+03-11 23:59:36.498 Ckpt path: 
+03-11 23:59:36.498 Scales : 1.0
+03-11 23:59:36.498 Inference mode: whole
+03-11 23:59:36.498 Load model file: 
+03-11 23:59:37.501 Model params = 114.1M

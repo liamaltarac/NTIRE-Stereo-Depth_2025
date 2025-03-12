@@ -1,6 +1,6 @@
 import torch
 import torch.nn as nn
-import network.nn.mynn as mynn
+import EBLNet.network.nn.mynn as mynn
 
 __all__ = ['ResNet', 'resnext101_32x8']
 

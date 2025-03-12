@@ -7,7 +7,7 @@ import torch.nn as nn
 import torch.nn.functional as F
 from collections import OrderedDict
 
-from network.nn.mynn import Upsample, Norm2d
+from EBLNet.network.nn.mynn import Upsample, Norm2d
 
 
 finetune_wo_infodrop = False  # when finetuning without InfoDrop, turn this on

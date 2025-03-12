@@ -1,0 +1,7 @@
+03-12 00:31:54.251 Network Arch: EBLNet.network.EBLNet.EBLNet_resnet50_os16
+03-12 00:31:54.256 Exp_name: 
+03-12 00:31:54.256 Ckpt path: 
+03-12 00:31:54.256 Scales : 1.0
+03-12 00:31:54.256 Inference mode: whole
+03-12 00:31:54.257 Load model file: 
+03-12 00:31:54.695 Model params = 51.0M

@@ -21,27 +21,31 @@ from torch.utils.data import DataLoader
 import torch
 import torchvision.transforms as transforms
 
+
+import imageio
+
+
 import torch.nn.functional as F
 import numpy as np
-import transforms.transforms as extended_transforms
+import EBLNet.transforms.transforms as extended_transforms
 
-from config import assert_and_infer_cfg
-from datasets import MSD, Trans10k, GDD
-from optimizer import restore_snapshot
-import transforms.joint_transforms as joint_transforms
+from EBLNet.config import assert_and_infer_cfg
+from EBLNet.datasets import MSD, Trans10k, GDD
+from EBLNet.optimizer import restore_snapshot
+import EBLNet.transforms.joint_transforms as joint_transforms
 
-from utils.my_data_parallel import MyDataParallel
-from utils.misc import fast_hist, save_log, \
+from EBLNet.utils.my_data_parallel import MyDataParallel
+from EBLNet.utils.misc import fast_hist, save_log, \
     evaluate_eval_for_inference, cal_mae, cal_ber, evaluate_eval_for_inference_with_mae_ber
 
-import network
+import EBLNet.network as network
 
 sys.path.append(os.path.join(os.getcwd()))
 sys.path.append(os.path.join(os.getcwd(), '../'))
 
 parser = argparse.ArgumentParser(description='evaluation')
 parser.add_argument('--dump_images', action='store_true', default=False)
-parser.add_argument('--arch', type=str, default='', required=True)
+parser.add_argument('--arch', type=str, default='EBLNet.network.EBLNet.EBLNet_resnet50_os16', required=False)
 parser.add_argument('--single_scale', action='store_true', default=False)
 parser.add_argument('--scales', type=str, default='0.5,1.0,2.0')
 parser.add_argument('--dist_bn', action='store_true', default=False)
@@ -52,8 +56,8 @@ parser.add_argument('--fixed_aspp_pool', action='store_true', default=False,
 parser.add_argument('--sliding_overlap', type=float, default=1 / 3)
 parser.add_argument('--no_flip', action='store_true', default=False,
                     help='disable flipping')
-parser.add_argument('--dataset', type=str, default='cityscapes')
-parser.add_argument('--dataset_cls', type=str, default='cityscapes')
+parser.add_argument('--dataset', type=str, default='Trans10k')
+parser.add_argument('--dataset_cls', type=str, default=None)
 parser.add_argument('--trunk', type=str, default='resnet101', help='cnn trunk')
 parser.add_argument('--dataset_dir', type=str, default=None,
                     help='Dataset Location')
@@ -62,7 +66,7 @@ parser.add_argument('--crop_size', type=int, default=513)
 parser.add_argument('--exp_name', type=str, default=None)
 parser.add_argument('--snapshot', type=str, default='')
 parser.add_argument('--ckpt_path', type=str, default=None)
-parser.add_argument('-im', '--inference_mode', type=str, default='sliding',
+parser.add_argument('-im', '--inference_mode', type=str, default='whole',
                     help='sliding or pooling or whole')
 parser.add_argument('--test_mode', action='store_true', default=False,
                     help='minimum testing (4 items evaluated) to verify nothing failed')
@@ -79,7 +83,7 @@ parser.add_argument('--resize_scale', type=int)
 parser.add_argument('--with_mae_ber', action='store_true')
 parser.add_argument('--local_rank', default=0, type=int,
                     help='parameter used by distributed library')
-parser.add_argument('--num_cascade', type=int, default=None, help='number of cascade layers')
+parser.add_argument('--num_cascade', type=int, default=4, help='number of cascade layers')
 parser.add_argument('--num_points', type=int, default=128, help='number of points when sampling in gcn model')
 parser.add_argument('--thres_gcn', type=float, default=0.8, help='threshold of sampling')
 parser.add_argument('--beta', default=1, type=int)
@@ -364,71 +368,54 @@ def inference_whole(model, img, scales):
     """
         whole images inference
     """
+    print("IMG SIZE IN WHOKE", img.size)
     w, h = img.size
     origw, origh = img.size
     preds = []
-    if args.no_flip:
-        flip_range = 1
-    else:
-        flip_range = 2
 
-    for scale in scales:
-        target_w, target_h = int(w * scale), int(h * scale)
-        scaled_img = img.resize((target_w, target_h), Image.BILINEAR)
 
-        for flip in range(flip_range):
-            if flip:
-                scaled_img = scaled_img.transpose(Image.FLIP_LEFT_RIGHT)
+    img_transform = transforms.Compose(
+        [transforms.ToTensor(), transforms.Normalize(*mean_std)])
+    image = img_transform(img)
+    print("IMG SHAPE : " , image.shape)
 
-            img_transform = transforms.Compose(
-                [transforms.ToTensor(), transforms.Normalize(*mean_std)])
-            image = img_transform(scaled_img)
-            with torch.no_grad():
-                input = image.unsqueeze(0).cuda()
-                scale_out = model(input)
-                scale_out = F.upsample(scale_out, size=(origh, origw), mode="bilinear", align_corners=True)
-                if not args.dist:
-                    scale_out = scale_out.squeeze().cpu().numpy()
-                if flip:
-                    if not args.dist:
-                        scale_out = scale_out[:, :, ::-1]
-                    else:
-                        scale_out = torch.flip(scale_out, dims=[-1])
-            preds.append(scale_out)
+    with torch.no_grad():
+        input = image.unsqueeze(0).cuda()
+        scale_out = model(input)
 
-    return preds
+    return scale_out
 
 
 def setup_loader():
     """
     Setup Data Loaders
     """
-    val_input_transform = transforms.ToTensor()
+    '''val_input_transform = transforms.ToTensor()
     target_transform = extended_transforms.MaskToTensor()
     val_joint_transform_list = [joint_transforms.Resize(args.resize_scale)]
     if args.dataset == 'Trans10k' or args.dataset == 'MSD' or args.dataset == 'GDD':
         val_joint_transform_list = [joint_transforms.Resize(args.resize_scale)]
         val_input_transform = transforms.Compose([transforms.ToTensor()])
-        target_transform = extended_transforms.MaskToTensor()
+        target_transform = extended_transforms.MaskToTensor()'''
 
     if args.dataset == 'MSD':
         args.dataset_cls = MSD
-        test_set = args.dataset_cls.MSDDateset(args.mode, args.split,
+        '''test_set = args.dataset_cls.MSDDateset(args.mode, args.split,
                                                joint_transform_list=val_joint_transform_list,
                                                transform=val_input_transform,
-                                               target_transform=target_transform)
+                                               target_transform=target_transform)'''
     elif args.dataset == 'Trans10k':
         args.dataset_cls = Trans10k
-        test_set = args.dataset_cls.Trains10kDataset(args.mode, args.split,
+        '''test_set = args.dataset_cls.Trains10kDataset(args.mode, args.split,
                                                      joint_transform_list=val_joint_transform_list,
                                                      transform=val_input_transform,
-                                                     target_transform=target_transform)
+                                                     target_transform=target_transform)'''
     elif args.dataset == 'GDD':
         args.dataset_cls = GDD
-        test_set = args.dataset_cls.GDDDateset(args.mode, args.split,
+        '''test_set = args.dataset_cls.GDDDateset(args.mode, args.split,
                                                joint_transform_list=val_joint_transform_list,
                                                transform=val_input_transform,
-                                               target_transform=target_transform)
+                                               target_transform=target_transform)'''
     else:
         raise NameError('-------------Not Supported Currently-------------')
 
@@ -457,15 +444,15 @@ def get_net():
     logging.info('Load model file: %s', args.snapshot)
     print(args)
     net = network.get_net(args, criterion=None)
-    if args.inference_mode == 'pooling':
+    '''if args.inference_mode == 'pooling':
         net = MyDataParallel(net, gather=False).cuda()
     elif args.dist:
         import apex
         net = apex.parallel.DistributedDataParallel(net)
     else:
-        net = torch.nn.DataParallel(net).cuda()
-    net, _ = restore_snapshot(net, optimizer=None,
-                              snapshot=args.snapshot, restore_optimizer_bool=False)
+        net = torch.nn.DataParallel(net).cuda()'''
+        
+
     net.eval()
     return net
 
@@ -473,17 +460,18 @@ def get_net():
 class RunEval():
     def __init__(self, output_dir, metrics, with_mae_ber, write_image, dataset_cls, inference_mode, beta=1):
         self.output_dir = output_dir
+
         self.rgb_path = os.path.join(output_dir, 'rgb')
         self.pred_path = os.path.join(output_dir, 'pred')
         self.diff_path = os.path.join(output_dir, 'diff')
         self.compose_path = os.path.join(output_dir, 'compose')
-        self.metrics = metrics
+        self.metrics = False  #metrics
         self.with_mae_ber = with_mae_ber
         self.beta = beta
 
-        self.write_image = write_image
+        self.write_image = True #write_image
         self.dataset_cls = dataset_cls
-        self.inference_mode = inference_mode
+        self.inference_mode = 'whole' # inference_mode
         self.mapping = {}
         os.makedirs(self.rgb_path, exist_ok=True)
         os.makedirs(self.pred_path, exist_ok=True)
@@ -511,41 +499,33 @@ class RunEval():
         # Run inference
         ######################################################################
 
-        self.img_name = img_names[0]
+        self.img_name = "out" ##img_names[0]
+        print("PATH RGB  !!!!!!!!!!!!!", self.rgb_path)
         col_img_name = '{}/{}_color.png'.format(self.rgb_path, self.img_name)
         pred_img_name = '{}/{}.png'.format(self.pred_path, self.img_name)
         diff_img_name = '{}/{}_diff.png'.format(self.diff_path, self.img_name)
         compose_img_name = '{}/{}_compose.png'.format(self.compose_path, self.img_name)
         to_pil = transforms.ToPILImage()
-        if self.inference_mode == 'pooling':
-            img = imgs
-            pool_base_img = to_pil(base_img[0])
-        else:
-            img = to_pil(imgs[0])
+
+        img = to_pil(imgs)
         prediction_pre_argmax_collection = inference(net, img, scales)
 
         if self.inference_mode == 'pooling':
             prediction = prediction_pre_argmax_collection
             prediction = np.concatenate(prediction, axis=0)[0]
         else:
-            prediction_pre_argmax = np.mean(prediction_pre_argmax_collection, axis=0)
+            print("222222,", prediction_pre_argmax_collection.cpu().shape)
+            prediction_pre_argmax = np.mean(prediction_pre_argmax_collection.cpu().numpy(), axis=0)
             prediction = np.argmax(prediction_pre_argmax, axis=0)
 
-        if self.metrics:
-            self.hist += fast_hist(prediction.flatten(), gt.cpu().numpy().flatten(),
-                                   self.dataset_cls.num_classes)
-            if self.with_mae_ber:
-                self.total_mae.append(cal_mae(prediction, gt.squeeze().cpu().numpy()))
-                temp_bers, temp_bers_count = cal_ber(prediction, gt.squeeze().cpu().numpy(),
-                                                     self.dataset_cls.num_classes)
-                self.total_bers += temp_bers
-                self.total_bers_count += temp_bers_count
-            # iou = round(np.nanmean(per_class_iu(self.hist)) * 100, 2)
-            # pbar.set_description("Mean IOU: %s" % (str(iou)))
+        
 
         ######################################################################
         # Dump Images
         ######################################################################
+
+
+
         if self.write_image:
 
             if self.inference_mode == 'pooling':
@@ -571,18 +551,7 @@ class RunEval():
             for label_id, train_id in self.dataset_cls.label2trainid.items():
                 label_out[np.where(prediction == train_id)] = label_id
             cv2.imwrite(pred_img_name, label_out)
-
-    def final_dump(self):
-        """
-        Dump Final metrics on completion of evaluation
-        """
-        if self.metrics:
-            if not self.with_mae_ber:
-                evaluate_eval_for_inference(self.hist, args.dataset_cls, beta=self.beta)
-            else:
-                evaluate_eval_for_inference_with_mae_ber(self.hist, self.total_mae,
-                                                         self.total_bers, self.total_bers_count,
-                                                         dataset=args.dataset_cls)
+            print("444444444", pred_img_name)
 
 
 def infer_args():
@@ -618,12 +587,9 @@ def main():
     # Parse args and set up logging
     infer_args()
 
-    if args.single_scale:
-        scales = [1.0]
-    else:
-        scales = [float(x) for x in args.scales.split(',')]
+    scales = [1.0]
 
-    output_dir = os.path.join(args.ckpt_path, args.exp_name, args.split)
+    output_dir = "OUTPUT_DIR" #os.path.join(args.ckpt_path, args.exp_name, args.split)
     os.makedirs(output_dir, exist_ok=True)
     save_log('eval', output_dir, date_str)
     logging.info("Network Arch: %s", args.arch)
@@ -635,8 +601,20 @@ def main():
 
     # Set up network, loader, inference mode
     metrics = args.dataset != 'video_folder'
-    test_loader = setup_loader()
+    test_loader = ['Train\Mirror\camera_00\im0.png'] #setup_loader()
 
+
+    if args.dataset == 'MSD':
+        args.dataset_cls = MSD
+        
+    elif args.dataset == 'Trans10k':
+        args.dataset_cls = Trans10k
+
+    elif args.dataset == 'GDD':
+        args.dataset_cls = GDD
+
+
+    print("AAAAAAAQAA", args.dataset_cls)
     runner = RunEval(output_dir, metrics,
                      write_image=args.dump_images,
                      dataset_cls=args.dataset_cls,
@@ -659,6 +637,8 @@ def main():
     else:
         raise 'Not a valid inference mode: {}'.format(args.inference_mode)
 
+    from matplotlib import pyplot as plt
+
     # Run Inference!
     pbar = tqdm(test_loader, desc='eval {}'.format(args.split), smoothing=1.0)
     for iteration, data in enumerate(pbar):
@@ -669,14 +649,17 @@ def main():
             gt = gt_with_imgs[1]
         else:
             base_img = None
-            imgs, gt, img_names = data
-
-        runner.inf(imgs, img_names, gt, inference, net, scales, base_img)
+            print("DATA ! ", data)
+            imgs  = Image.open(data)
+            plt.imshow(imgs)
+            imgs = np.array(imgs)
+            imgs = cv2.resize(imgs, None, fx=0.3, fy=0.3, interpolation=cv2.INTER_CUBIC )
+        runner.inf(imgs, None, None, inference, net, scales, base_img)
         if iteration > 5 and args.test_mode:
             break
 
     # Calculate final overall statistics
-    runner.final_dump()
+    #runner.final_dump()
 
 
 if __name__ == '__main__':

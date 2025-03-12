@@ -20,6 +20,7 @@ def get_net(args, criterion):
     return net
 
 
+
 def wrap_network_in_dataparallel(net, use_apex_data_parallel=False):
     """
     Wrap the network in Dataparallel

@@ -1,8 +1,6 @@
 #!/usr/bin/env bash
-echo "Running inference on" ${1}
-echo "Saving Results :" ${2}
-python eval.py \
-	--dataset Trans10k \
+
+python /EBLNet/eval.py --dataset "Trans10k" 
     --arch network.EBLNet.EBLNet_resnet50_os8 \
     --inference_mode  whole \
     --single_scale \
@@ -16,5 +14,3 @@ python eval.py \
     --thres_gcn 0.9 \
     --num_cascade 3 \
     --no_flip \
-    --ckpt_path ${2} \
-    --snapshot ${1}

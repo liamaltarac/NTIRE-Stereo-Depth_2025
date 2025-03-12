@@ -6,7 +6,7 @@ import cv2
 from torch.utils import data
 
 import logging
-from config import cfg
+from EBLNet.config import cfg
 
 num_classes = 3
 ignore_label = 255

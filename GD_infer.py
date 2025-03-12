@@ -90,7 +90,7 @@ def eval(img_list):
 
             #Image.fromarray(f3).save(os.path.join(gdd_results_root, '%s_%s' % (exp_name, args['snapshot']),
             #                                        img_name[:-4] + ".png"))
-            results.append(f3)
+            results.append(f1)
 
         end = time.time()
         print("Average Time Is : {:.2f}".format((end - start) / len(img_list)))
@@ -100,7 +100,6 @@ def eval(img_list):
 from matplotlib import pyplot as plt
 
 if __name__ == '__main__':
-    r = eval(['Train\Moka1\camera_02\im1.png'])
-    print(r)
+    r = eval(['Train\Moka1\camera_00\im5.png'])
     plt.imshow(r[0])
     plt.show()

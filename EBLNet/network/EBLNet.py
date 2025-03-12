@@ -2,11 +2,11 @@ import torch
 import torch.nn as nn
 import torch.nn.functional as F
 
-from network import resnet_d as Resnet_Deep
-from network.resnext import resnext101_32x8
-from network.nn.mynn import Norm2d
-from network.nn.contour_point_gcn import ContourPointGCN
-from network.nn.operators import _AtrousSpatialPyramidPoolingModule
+from EBLNet.network import resnet_d as Resnet_Deep
+from EBLNet.network.resnext import resnext101_32x8
+from EBLNet.network.nn.mynn import Norm2d
+from EBLNet.network.nn.contour_point_gcn import ContourPointGCN
+from EBLNet.network.nn.operators import _AtrousSpatialPyramidPoolingModule
 
 
 class Edge_extractorWofirstext(nn.Module):

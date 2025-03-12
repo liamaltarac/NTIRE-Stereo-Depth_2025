@@ -3,14 +3,14 @@ Dataset setup and loaders
 This file including the different datasets processing pipelines
 """
 
-from datasets import MSD
-from datasets import GDD
-from datasets import Trans10k
+from EBLNet.datasets import MSD
+from EBLNet.datasets import GDD
+from EBLNet.datasets import Trans10k
 
 import torchvision.transforms as standard_transforms
 
-import transforms.joint_transforms as joint_transforms
-import transforms.transforms as extended_transforms
+import EBLNet.transforms.joint_transforms as joint_transforms
+import EBLNet.transforms.transforms as extended_transforms
 from torch.utils.data import DataLoader
 
 
