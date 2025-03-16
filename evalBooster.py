@@ -107,13 +107,13 @@ def batch_eval(model, img_dir, intrinsic_file, out_dir, scale=1.0, valid_iters=3
 
 if __name__ == '__main__':
     parser = argparse.ArgumentParser(description="Batch Depth Map Evaluation using FoundationStereo")
-    parser.add_argument('--img_dir', default='val_stereo_nogt', type=str,
+    parser.add_argument('--img_dir', default=os.path.join(os.getenv('SCRATCH'), "Train"), type=str,
                         help='Directory with stereo image sequences (each scene in its own subfolder)')
     parser.add_argument('--intrinsic_file', default='FoundationStereo/assets/K.txt', type=str,
                         help='File containing camera intrinsic matrix (first line) and baseline (second line)')
     parser.add_argument('--ckpt_dir', default='pretrained_models/model_best_bp2.pth', type=str,
                         help='Path to the pretrained model checkpoint')
-    parser.add_argument('--out_dir', default='output', type=str,
+    parser.add_argument('--out_dir', default=os.path.join(os.getenv('SCRATCH'), "depth_train"), type=str,
                         help='Directory to save computed depth maps')
     parser.add_argument('--scale', default=.3, type=float,
                         help='Downsize the image by this scale factor (must be <=1)')

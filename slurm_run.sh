@@ -5,7 +5,7 @@
 #SBATCH --gpus-per-node=1
 #SBATCH --cpus-per-gpu=1  # 6*4: There are 24 CPU cores on P100 Cedar GPU nodes
 #SBATCH --mem=24G         # Request the full memory of the node
-#SBATCH --time=00:20:00
+#SBATCH --time=01:30:00
 #SBATCH --wait-all-nodes=1
 #SBATCH --output=%N-%j.out
 #SBATCH --mail-user=liam.frija-altarac.1@ens.etsmtl.ca
@@ -35,7 +35,8 @@ pip install transformations
 # Do not install opencv-contrib-python from pip because we're using the system's OpenCV.
 # pip install --no-index opencv-contrib-python
 
-pip install  --no-index xformers --no-build-isolation
+pip install xformers==0.0.28.post1  --no-build-isolation 
+
 
 
 python evalBooster.py
