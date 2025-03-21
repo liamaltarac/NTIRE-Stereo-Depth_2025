@@ -73,12 +73,8 @@ def batch_eval(model, img_dir, intrinsic_file, out_dir, scale=1.0, valid_iters=3
             # Read images using imageio
             img_left_a0 = imageio.imread(left_file)
             img_right_a0 = imageio.imread(right_file)
-            img_left_a1 = color_jitter_1(img_left_a0)
-            img_right_a1 = color_jitter_1(img_right_a0)
-            img_left_a2 = color_jitter_2(img_left_a0)
-            img_right_a2 = color_jitter_2(img_right_a0)
-            img_left_a3 = color_jitter_3(img_left_a0)
-            img_right_a3 = color_jitter_3(img_right_a0)
+
+
 
             orig_H, orig_W = img_left_a0.shape[:2]
             
@@ -89,16 +85,29 @@ def batch_eval(model, img_dir, intrinsic_file, out_dir, scale=1.0, valid_iters=3
                 img_left_a0 = cv2.resize(img_left_a0, fx=scale, fy=scale, dsize=None, interpolation=cv2.INTER_CUBIC)
                 img_right_a0 = cv2.resize(img_right_a0, fx=scale, fy=scale, dsize=None, interpolation=cv2.INTER_CUBIC)
 
-                img_left_a1 = cv2.resize(img_left_a1, fx=scale, fy=scale, dsize=None, interpolation=cv2.INTER_CUBIC)
-                img_right_a1 = cv2.resize(img_right_a1, fx=scale, fy=scale, dsize=None, interpolation=cv2.INTER_CUBIC)
+                # img_left_a1 = cv2.resize(img_left_a1, fx=scale, fy=scale, dsize=None, interpolation=cv2.INTER_CUBIC)
+                # img_right_a1 = cv2.resize(img_right_a1, fx=scale, fy=scale, dsize=None, interpolation=cv2.INTER_CUBIC)
 
-                img_left_a2 = cv2.resize(img_left_a2, fx=scale, fy=scale, dsize=None, interpolation=cv2.INTER_CUBIC)
-                img_right_a2 = cv2.resize(img_right_a2, fx=scale, fy=scale, dsize=None, interpolation=cv2.INTER_CUBIC)
+                # img_left_a2 = cv2.resize(img_left_a2, fx=scale, fy=scale, dsize=None, interpolation=cv2.INTER_CUBIC)
+                # img_right_a2 = cv2.resize(img_right_a2, fx=scale, fy=scale, dsize=None, interpolation=cv2.INTER_CUBIC)
 
-                img_left_a3 = cv2.resize(img_left_a3, fx=scale, fy=scale, dsize=None, interpolation=cv2.INTER_CUBIC)
-                img_right_a3 = cv2.resize(img_right_a3, fx=scale, fy=scale, dsize=None, interpolation=cv2.INTER_CUBIC)
+                # img_left_a3 = cv2.resize(img_left_a3, fx=scale, fy=scale, dsize=None, interpolation=cv2.INTER_CUBIC)
+                # img_right_a3 = cv2.resize(img_right_a3, fx=scale, fy=scale, dsize=None, interpolation=cv2.INTER_CUBIC)
             
             # Convert images to torch tensors and add batch dimension; (B, C, H, W)
+
+            img_left_a0 = torch.Tensor(img_left_a0)
+            img_right_a0 = torch.Tensor(img_right_a0)
+
+            img_left_a1 = color_jitter_1(img_left_a0)
+            img_right_a1 = color_jitter_1(img_right_a0)
+
+            img_left_a2 = color_jitter_2(img_left_a0)
+            img_right_a2 = color_jitter_2(img_right_a0)
+
+            img_left_a3 = color_jitter_3(img_left_a0)
+            img_right_a3 = color_jitter_3(img_right_a0)
+
             img_left_a0_tensor = torch.as_tensor(img_left_a0).cuda().float()[None].permute(0, 3, 1, 2)
             img_right_a0_tensor = torch.as_tensor(img_right_a0).cuda().float()[None].permute(0, 3, 1, 2)
 
